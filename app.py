@@ -3,8 +3,13 @@ import sqlite3
 import os
 import time
 from waitress import serve
+import string
+import secrets
+import random
 
 app = Flask(__name__)
+
+print("http://localhost:8000/")
 
 # ---------------------------------------------------------
 # SESSION MANAGEMENT VULNERABILITY
@@ -13,7 +18,19 @@ app = Flask(__name__)
 # If an attacker obtains this key, they can forge session cookies.
 # Proper systems store this securely in environment variables. 
 # ----------------------------------------------------------
-app.secret_key = "insecure-secret-key"
+
+#-----------------------------------------------------------
+# GENERATING A SECURE RANDOM APP KEY
+#-----------------------------------------------------------
+
+# Creating a list of letters and digits (A - Z and 1-9) for the password to be made up of. 
+Char_List = string.ascii_letters + string.digits
+# Selecting 1 letter / digit, a random amount of times from 30 to 40.
+Selection_of_Values = [secrets.choice(Char_List) for i in range(random.randint(30,40))]
+# Taking the values out of a string and joining them into one string
+key = "".join(Selection_of_Values)
+app.secret_key = key
+
 
 
 @app.route('/')
@@ -39,8 +56,9 @@ def login_validation():
     # password: anything
     # This would log them in without knowing credentials.
     # ---------------------------------------------------------
-    query = f"SELECT * FROM USERS WHERE email = '{email}' AND password = '{password}'"
-    user = cursor.execute(query).fetchall()
+    user = cursor.execute(
+        "SELECT * FROM USERS WHERE email = ? AND password = ?", 
+        (email,password)).fetchall()
 
     # ---------------------------------------------------------
     # SIDE CHANNEL ATTACK (Timing Attack)
