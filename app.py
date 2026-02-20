@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, send_file
+from dotenv import load_dotenv
 import sqlite3
 import os
 import time
@@ -20,16 +21,11 @@ print("http://localhost:8000/")
 # ----------------------------------------------------------
 
 #-----------------------------------------------------------
-# GENERATING A SECURE RANDOM APP KEY
+# Using a variable from an enviorment file as the secret key. 
 #-----------------------------------------------------------
+load_dotenv()
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
 
-# Creating a list of letters and digits (A - Z and 1-9) for the password to be made up of. 
-Char_List = string.ascii_letters + string.digits
-# Selecting 1 letter / digit, a random amount of times from 30 to 40.
-Selection_of_Values = [secrets.choice(Char_List) for i in range(random.randint(30,40))]
-# Taking the values out of a string and joining them into one string
-key = "".join(Selection_of_Values)
-app.secret_key = key
 
 
 
@@ -56,9 +52,7 @@ def login_validation():
     # password: anything
     # This would log them in without knowing credentials.
     # ---------------------------------------------------------
-    user = cursor.execute(
-        "SELECT * FROM USERS WHERE email = ? AND password = ?", 
-        (email,password)).fetchall()
+    user = cursor.execute("SELECT * FROM USERS WHERE email = ? AND password = ?", (email,password)).fetchall()
 
     # ---------------------------------------------------------
     # SIDE CHANNEL ATTACK (Timing Attack)
