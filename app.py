@@ -61,7 +61,7 @@ def login_validation():
     # Attackers could measure response times to guess valid emails.
     # ---------------------------------------------------------
     if len(user) > 0:
-        time.sleep(0.1)  # shorter delay
+        time.sleep(1)  # shorter delay
     else:
         time.sleep(1)  # longer delay reveals login failure timing
 
