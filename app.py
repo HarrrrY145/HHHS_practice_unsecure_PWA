@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, send_file
+from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 import sqlite3
 import os
@@ -9,17 +10,9 @@ import secrets
 import random
 
 app = Flask(__name__)
+bcrypt = Bcrypt(app)
 
 print("http://localhost:8000/")
-
-# ---------------------------------------------------------
-# SESSION MANAGEMENT VULNERABILITY
-# ---------------------------------------------------------
-# Hardcoded secret key.
-# If an attacker obtains this key, they can forge session cookies.
-# Proper systems store this securely in environment variables. 
-# ----------------------------------------------------------
-
 #-----------------------------------------------------------
 # Using a variable from an enviorment file as the secret key. 
 #-----------------------------------------------------------
@@ -38,7 +31,8 @@ def login():
 def login_validation():
 
     email = request.form.get('email')
-    password = request.form.get('password')
+    password_attempt = request.form.get('password')
+
 
     connection = sqlite3.connect('LoginData.db')
     cursor = connection.cursor()
@@ -46,24 +40,15 @@ def login_validation():
     # ---------------------------------------------------------
     # SQL INJECTION VULNERABILITY
     # ---------------------------------------------------------
-    # This query directly inserts user input into SQL.
-    # An attacker could enter:
-    # email: ' OR '1'='1
-    # password: anything
-    # This would log them in without knowing credentials.
-    # ---------------------------------------------------------
-    user = cursor.execute("SELECT * FROM USERS WHERE email = ? AND password = ?", (email,password)).fetchall()
-
+    user = cursor.execute("SELECT * FROM USERS WHERE email = ?", (email,)).fetchall()
+    
     # ---------------------------------------------------------
     # SIDE CHANNEL ATTACK (Timing Attack)
     # ---------------------------------------------------------
-    # This artificial delay creates measurable timing differences.
-    # Attackers could measure response times to guess valid emails.
-    # ---------------------------------------------------------
     if len(user) > 0:
-        time.sleep(1)  # shorter delay
+        time.sleep(0.1)  #Same delays
     else:
-        time.sleep(1)  # longer delay reveals login failure timing
+        time.sleep(0.1)  
 
     if len(user) > 0:
 
@@ -86,7 +71,6 @@ def login_validation():
         return redirect(f'/home?fname={user[0][0]}&lname={user[0][1]}&email={user[0][2]}')
     else:
         return redirect('/')
-
 
 @app.route('/signUp')
 def signUp():
@@ -127,7 +111,9 @@ def add_user():
     fname = request.form.get('fname')
     lname = request.form.get('lname')
     email = request.form.get('email')
+
     password = request.form.get('password')
+    hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
     connection = sqlite3.connect('LoginData.db')
     cursor = connection.cursor()
@@ -157,7 +143,7 @@ def add_user():
         # ---------------------------------------------------------
         cursor.execute(
             f"INSERT INTO USERS(first_name,last_name,email,password) "
-            f"VALUES('{fname}','{lname}','{email}','{password}')"
+            f"VALUES('{fname}','{lname}','{email}','{hash}')"
         )
         connection.commit()
         connection.close()
