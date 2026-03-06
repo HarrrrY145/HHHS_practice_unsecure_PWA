@@ -83,12 +83,6 @@ def home():
     # ---------------------------------------------------------
     # BROKEN AUTHENTICATION
     # ---------------------------------------------------------
-    # No check that a valid session exists.
-    # Anyone can manually visit:
-    # http://site/home?fname=Admin&lname=User&email=admin@email.com
-    # and appear logged in.
-    # ---------------------------------------------------------
-
     if 'user' not in session:
         return redirect('/login')
     
