@@ -63,9 +63,9 @@ def login_validation():
         # ---------------------------------------------------------
         # SESSION MANAGEMENT VULNERABILITY
         # ---------------------------------------------------------
-        # Storing email directly in session without regeneration.
-        # Session fixation possible.
-        # ---------------------------------------------------------
+
+        #Session regeneration
+        session.regenerate()
         session['user'] = email
 
         return redirect(f'/home?fname={user[0][0]}&lname={user[0][1]}&email={user[0][2]}')
@@ -89,10 +89,15 @@ def home():
     # and appear logged in.
     # ---------------------------------------------------------
 
-    fname = request.args.get('fname')
-    lname = request.args.get('lname')
-    email = request.args.get('email')
+    if 'user' not in session:
+        return redirect('/login')
+    
+    email = session['user']
 
+    connection = sqlite3.connect('LoginData.db')
+    cursor = connection.cursor()
+    cursor.execute("SELECT fname, lname FROM USERS WHERE email = ?", (email,))
+    user = cursor.fetchone()
     # ---------------------------------------------------------
     # CROSS-SITE SCRIPTING (XSS)
     # ---------------------------------------------------------
@@ -102,6 +107,10 @@ def home():
     # This would execute JavaScript in the victim's browser.
     # ---------------------------------------------------------
 
+    if not user:
+        return redirect('/login')
+
+    fname, lname = user
     return render_template('home.html', fname=fname, lname=lname, email=email)
 
 
