@@ -92,6 +92,7 @@ def home():
     cursor = connection.cursor()
     cursor.execute("SELECT fname, lname FROM USERS WHERE email = ?", (email,))
     user = cursor.fetchone()
+
     # ---------------------------------------------------------
     # CROSS-SITE SCRIPTING (XSS)
     # ---------------------------------------------------------
@@ -100,7 +101,6 @@ def home():
     # ?fname=<script>alert('Hacked')</script>
     # This would execute JavaScript in the victim's browser.
     # ---------------------------------------------------------
-
     if not user:
         return redirect('/login')
 
@@ -140,14 +140,8 @@ def add_user():
         # ---------------------------------------------------------
         # SQL INJECTION (again)
         # ---------------------------------------------------------
-        # Attacker could inject SQL into fname/lname fields.
-        # Example:
-        # fname = Robert'); DROP TABLE USERS;--
-        # ---------------------------------------------------------
-        cursor.execute(
-            f"INSERT INTO USERS(first_name,last_name,email,password) "
-            f"VALUES('{fname}','{lname}','{email}','{hash}')"
-        )
+        cursor.execute("INSERT INTO USERS(first_name,last_name,email,password) "
+                       "VALUES (?,?,?,?)", (fname,lname,email,hash)) 
         connection.commit()
         connection.close()
 
