@@ -5,7 +5,7 @@ cursor = connection.cursor()
 
 cmd1 = """ CREATE TABLE IF NOT EXISTS USERS(first_name varchar(50),
                                         last_name varchar(50),
-                                        email varchar(50) primary key,
+                                        email varchar UNIQUE(50) primary key,
                                         password TEXT NOT NULL) """
 cursor.execute(cmd1)
 

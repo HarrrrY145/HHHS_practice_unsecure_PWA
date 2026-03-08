@@ -130,7 +130,8 @@ def add_user():
     # This creates duplicate accounts.
     # Proper fix: UNIQUE constraint + transaction handling.
     # ---------------------------------------------------------
-    ans = cursor.execute(f"SELECT * FROM USERS WHERE email = '{email}'").fetchall()
+    
+    ans = cursor.execute("SELECT * FROM USERS WHERE email = ?", (email,)).fetchall()
 
     if len(ans) > 0:
         connection.close()
@@ -140,12 +141,19 @@ def add_user():
         # ---------------------------------------------------------
         # SQL INJECTION (again)
         # ---------------------------------------------------------
-        cursor.execute("INSERT INTO USERS(first_name,last_name,email,password) "
-                       "VALUES (?,?,?,?)", (fname,lname,email,hash)) 
-        connection.commit()
-        connection.close()
+        try:
+            cursor.execute("INSERT INTO USERS(first_name,last_name,email,password) "
+                        "VALUES (?,?,?,?)", (fname,lname,email,hash)) 
+            connection.commit()
 
-        return render_template('login.html')
+        except sqlite3.IntergrityError:
+            print("Email already in use")
+        
+        finally:
+            connection.close()
+            return render_template('login.html')
+
+
 
 
 @app.route('/redirect_me')
