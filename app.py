@@ -56,11 +56,8 @@ def login_validation():
     if user: 
         stored_hash = user[3] #password colum
         # ---------------------------------------------------------
-        # BROKEN AUTHENTICATION
+        # BROKEN AUTHENTICATION FIXED
         # ---------------------------------------------------------
-        # Passwords are stored in plain text.
-        # No hashing, no salting.
-        # If DB is leaked, all passwords are exposed.
         # ---------------------------------------------------------
         if bcrypt.check_password_hash(stored_hash, password_attempt):
             print("worked")
