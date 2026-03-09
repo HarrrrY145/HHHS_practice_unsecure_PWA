@@ -9,6 +9,7 @@
 <body>
     <main>
         <form method="post" action="/add_user">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name = "fname" placeholder="Enter First Name"><br>
             <input type="text" name = "lname" placeholder="Enter Last Name"><br>
             <input type="email" name = "email" placeholder="Enter Email"><br>

@@ -1,23 +1,28 @@
 from flask import Flask, render_template, request, redirect, session, send_file
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
+from flask_wtf.csrf import CSRFProtect
 import sqlite3
 import os
 import time
 from waitress import serve
+
 import string
 import secrets
 import random
 
 app = Flask(__name__)
-bcrypt = Bcrypt(app)
-
-print("http://localhost:8000/")
 #-----------------------------------------------------------
 # Using a variable from an enviorment file as the secret key. 
 #-----------------------------------------------------------
 load_dotenv()
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+csrf = CSRFProtect(app)
+bcrypt = Bcrypt(app)
+
+print("http://localhost:8000/")
+
 
 
 
@@ -38,20 +43,18 @@ def login_validation():
     cursor = connection.cursor()
 
     # ---------------------------------------------------------
-    # SQL INJECTION VULNERABILITY
+    # SQL INJECTION VULNERABILITY FIXED
     # ---------------------------------------------------------
-    user = cursor.execute("SELECT * FROM USERS WHERE email = ?", (email,)).fetchall()
+# FETCHING USER FROM ROW
+    user = cursor.execute("SELECT * FROM USERS WHERE email = ?", (email,)).fetchone()
     
     # ---------------------------------------------------------
-    # SIDE CHANNEL ATTACK (Timing Attack)
+    # SIDE CHANNEL ATTACK (Timing Attack) FIXED
     # ---------------------------------------------------------
-    if len(user) > 0:
-        time.sleep(0.1)  #Same delays
-    else:
-        time.sleep(0.1)  
+    time.sleep(0.1)  #Same delays
 
-    if len(user) > 0:
-
+    if user: 
+        stored_hash = user[3] #password colum
         # ---------------------------------------------------------
         # BROKEN AUTHENTICATION
         # ---------------------------------------------------------
@@ -59,17 +62,18 @@ def login_validation():
         # No hashing, no salting.
         # If DB is leaked, all passwords are exposed.
         # ---------------------------------------------------------
-
+        if bcrypt.check_password_hash(stored_hash, password_attempt):
+            print("worked")
         # ---------------------------------------------------------
-        # SESSION MANAGEMENT VULNERABILITY
+        # SESSION MANAGEMENT VULNERABILITY FIXED
         # ---------------------------------------------------------
-
         #Session regeneration
-        session.regenerate()
-        session['user'] = email
+            session.clear()
+            session['user'] = email
 
-        return redirect(f'/home?fname={user[0][0]}&lname={user[0][1]}&email={user[0][2]}')
+            return redirect(f'/home?fname={user[0]}&lname={user[1]}&email={user[2]}')
     else:
+        #If user not found OR password incorrect
         return redirect('/')
 
 @app.route('/signUp')
@@ -81,7 +85,7 @@ def signUp():
 def home():
 
     # ---------------------------------------------------------
-    # BROKEN AUTHENTICATION
+    # BROKEN AUTHENTICATION FIXED
     # ---------------------------------------------------------
     if 'user' not in session:
         return redirect('/login')
@@ -94,7 +98,7 @@ def home():
     user = cursor.fetchone()
 
     # ---------------------------------------------------------
-    # CROSS-SITE SCRIPTING (XSS)
+    # CROSS-SITE SCRIPTING (XSS) 
     # ---------------------------------------------------------
     # If home.html uses {{ fname|safe }} or similar unsafe rendering,
     # an attacker could pass:
@@ -122,13 +126,7 @@ def add_user():
     cursor = connection.cursor()
 
     # ---------------------------------------------------------
-    # RACE CONDITION
-    # ---------------------------------------------------------
-    # This check-then-insert pattern is unsafe.
-    # If two users register the same email simultaneously,
-    # both may pass the check before either inserts.
-    # This creates duplicate accounts.
-    # Proper fix: UNIQUE constraint + transaction handling.
+    # RACE CONDITION FIXED
     # ---------------------------------------------------------
     
     ans = cursor.execute("SELECT * FROM USERS WHERE email = ?", (email,)).fetchall()
@@ -139,10 +137,10 @@ def add_user():
     else:
 
         # ---------------------------------------------------------
-        # SQL INJECTION (again)
+        # SQL INJECTION (again) FIXED
         # ---------------------------------------------------------
         try:
-            cursor.execute("INSERT INTO USERS(first_name,last_name,email,password) "
+            cursor.execute("INSERT INTO USERS(fname,lname,email,password) "
                         "VALUES (?,?,?,?)", (fname,lname,email,hash)) 
             connection.commit()
 
@@ -190,18 +188,18 @@ def download():
 def transfer_money():
 
     # ---------------------------------------------------------
-    # CROSS-SITE REQUEST FORGERY (CSRF)
-    # ---------------------------------------------------------
-    # No CSRF token validation.
-    # If a logged-in user visits a malicious site,
-    # that site could auto-submit a form to this endpoint
-    # and perform actions without the user's consent.
+    # CROSS-SITE REQUEST FORGERY (CSRF) FIXED
     # ---------------------------------------------------------
 
     amount = request.form.get('amount')
     recipient = request.form.get('recipient')
 
     return f"Transferred ${amount} to {recipient}"
+
+@app.route('/csrf_test')
+def csrf_test():
+    return f"Token: {csrf.generate_csrf()}"
+
 
 
 if __name__ == '__main__':

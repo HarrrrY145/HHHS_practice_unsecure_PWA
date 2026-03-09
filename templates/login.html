@@ -9,6 +9,8 @@
 <body>
     <main>
         <form method ="post" action="/login_validation">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <input type = "email" name = "email" placeholder = "Enter email"><br>
             <input type = "password" name = "password" placeholder = "Enter password"><br>
             <button type = "submit" value= "login">login</button>
